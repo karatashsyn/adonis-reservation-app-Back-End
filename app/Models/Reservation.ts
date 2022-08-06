@@ -4,12 +4,15 @@ import {
   BelongsTo,
   belongsTo,
   column,
+  hasMany,
   manyToMany,
+  HasMany,
   ManyToMany,
 } from '@ioc:Adonis/Lucid/Orm'
 import Service from './Service'
 import Employee from './Employee'
 import User from './User'
+import ReservationService from './ReservationService'
 
 export default class Reservation extends BaseModel {
   @column({ isPrimary: true })
@@ -27,7 +30,12 @@ export default class Reservation extends BaseModel {
   @column.dateTime({ autoCreate: true })
   public createdAt: DateTime
 
-  @manyToMany(() => Service)
+  // @manyToMany(() => Service, {
+  //   localKey: 'id',
+  //   pivotForeignKey: 'user_id',
+  //   relatedKey: 'id',
+  //   pivotRelatedForeignKey: 'service_id',
+  // })
   public services: ManyToMany<typeof Service>
 
   @belongsTo(() => Employee)
@@ -35,6 +43,9 @@ export default class Reservation extends BaseModel {
 
   @belongsTo(() => User)
   public user: BelongsTo<typeof User>
+
+  @hasMany(() => ReservationService)
+  public reservationServices: HasMany<typeof ReservationService>
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   public updatedAt: DateTime

@@ -19,6 +19,7 @@
 */
 
 import Route from '@ioc:Adonis/Core/Route'
+import ReservationsController from 'App/Controllers/Http/ReservationsController'
 
 Route.get('/', async () => {
   return { hello: 'world' }
@@ -44,7 +45,11 @@ Route.get('/services', 'ServicesController.getAllServices').middleware('auth')
 Route.post('/services/add', 'ServicesController.createService').middleware('auth')
 Route.patch('/services/:serviceId/update', 'ServicesController.updateService').middleware('auth')
 Route.delete('/services/:serviceId/delete', 'ServicesController.deleteService').middleware('auth')
+
 //RESERVATION ROUTES
+Route.get('/reservations/:reservationId', 'ReservationsController.getReservation').middleware(
+  'auth'
+)
 Route.get('/reservations', 'ReservationsController.getAllReservations').middleware('auth')
 Route.post('/reservations/add', 'ReservationsController.createReservation').middleware('auth')
 

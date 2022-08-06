@@ -5,39 +5,32 @@ import ReservationService from 'App/Models/ReservationService'
 import Service from 'App/Models/Service'
 
 export default class ReservationsController {
+  public async getReservation({ request }: HttpContextContract) {
+    try {
+      const gettedRes = await Reservation.find(request.param('reservationId'))
+      await gettedRes?.load('employee')
+      await gettedRes?.load('reservationServices', (resser) => {
+        resser.preload('services')
+      })
+      let totalEstimatedTime = 0
+      for (let i = 0; i < gettedRes?.reservationServices.length!; i++) {
+        totalEstimatedTime += gettedRes?.reservationServices[i].services.estimatedTime!
+      }
+      return { Reservation: gettedRes?.$preloaded, totalEstimatedTime: totalEstimatedTime }
+    } catch (err) {
+      return err
+    }
+  }
+
   public async getAllReservations({ auth }: HttpContextContract) {
     try {
-      await auth.user?.load('reservations', (res) => {
-        res.preload('employee')
-      })
-      //   return auth.user?.reservations.length
-      let allReservations: any = []
-
-      for (let i = 0; i < auth.user!.reservations.length; i++) {
-        let currentReservationId: number
-        currentReservationId = auth.user!.reservations[i].id
-        const allResSerPairs = await ReservationService.query().where(
-          'reservation_id',
-          currentReservationId
-        )
-        const servicesArray: Service[] = []
-        for (let j = 0; j < allResSerPairs.length; j++) {
-          servicesArray.push((await Service.find(allResSerPairs[j].serviceId))!)
-        }
-        console.log(servicesArray)
-        let initial = 0
-        for (let i = 0; i < servicesArray.length; i++) {
-          initial += servicesArray[i].estimatedTime
-        }
-        allReservations.push({
-          ...auth.user!.reservations[i].$attributes,
-          employee: auth.user?.reservations[i].$preloaded,
-          services: servicesArray,
-          estimatedServiceTime: initial,
+      const reservationss = await auth.user?.load('reservations', (res) => {
+        res.preload('reservationServices', (resser) => {
+          resser.preload('services')
         })
-      }
-      console.log(allReservations)
-      return allReservations
+      })
+
+      return auth.user?.reservations
     } catch (err) {
       return err
     }
@@ -53,11 +46,14 @@ export default class ReservationsController {
     try {
       const control = await request.validate({ schema: newReservationSchema })
       const reservation = new Reservation()
-      reservation.name = control.name
-      reservation.userId = auth.user!.id
-      reservation.employeeId = control.employeeId
+      const newReservation = {
+        ...reservation,
+        name: control.name,
+        userId: auth.user!.id,
+        employeeId: control.employeeId,
+      }
       //Constructing many to many relationship between services and reservations
-      await reservation.save().then((savedReservation) => {
+      await newReservation.save().then((savedReservation) => {
         for (let i = 0; i < control.serviceIds.length; i++) {
           const newRelationShip = new ReservationService()
           newRelationShip.reservationId = savedReservation.id

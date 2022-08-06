@@ -3,6 +3,7 @@ import { BaseModel, BelongsTo, belongsTo, column } from '@ioc:Adonis/Lucid/Orm'
 import { ManyToMany, manyToMany } from '@ioc:Adonis/Lucid/Orm'
 import Reservation from './Reservation'
 import User from './User'
+import ReservationService from './ReservationService'
 
 export default class Service extends BaseModel {
   @column({ isPrimary: true })
@@ -23,8 +24,8 @@ export default class Service extends BaseModel {
   @column()
   public reservationId: number
 
-  @manyToMany(() => Reservation)
-  public reservations: ManyToMany<typeof Reservation>
+  // @manyToMany(() => Reservation)
+  // public reservations: ManyToMany<typeof Reservation>
 
   @belongsTo(() => User)
   public user: BelongsTo<typeof User>

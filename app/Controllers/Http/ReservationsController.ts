@@ -1,8 +1,7 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
-import { schema, rules } from '@ioc:Adonis/Core/Validator'
 import Reservation from 'App/Models/Reservation'
 import ReservationService from 'App/Models/ReservationService'
-import Service from 'App/Models/Service'
+import { validators } from 'App/utils/validationSchemas'
 
 export default class ReservationsController {
   public async getReservation({ request }: HttpContextContract) {
@@ -24,7 +23,7 @@ export default class ReservationsController {
 
   public async getAllReservations({ auth }: HttpContextContract) {
     try {
-      const reservationss = await auth.user?.load('reservations', (res) => {
+      await auth.user?.load('reservations', (res) => {
         res.preload('reservationServices', (resser) => {
           resser.preload('services')
         })
@@ -37,14 +36,8 @@ export default class ReservationsController {
   }
 
   public async createReservation({ auth, request }: HttpContextContract) {
-    const newReservationSchema = schema.create({
-      name: schema.string({ trim: true }, [rules.minLength(2)]),
-      employeeId: schema.number([rules.required()]),
-      serviceIds: schema.array([rules.minLength(1)]).members(schema.number()),
-    })
-
     try {
-      const control = await request.validate({ schema: newReservationSchema })
+      const control = await request.validate({ schema: validators.newReservationSchema })
       const reservation = new Reservation()
       const newReservation = {
         ...reservation,
@@ -65,12 +58,7 @@ export default class ReservationsController {
   }
 
   public async updateReservation({ request }: HttpContextContract) {
-    const newReservationSchema = schema.create({
-      name: schema.string({ trim: true }, [rules.minLength(2), rules.requiredIfExists('name')]),
-      employeeId: schema.number([rules.requiredIfExists('employeeId')]),
-      serviceIds: schema.array([rules.requiredIfExists('serviceIds')]).members(schema.number()),
-    })
-    const payload = await request.validate({ schema: newReservationSchema })
+    const payload = await request.validate({ schema: validators.newReservationSchema })
     try {
       const currentReservationId = request.param('reservationId')
       const oldPairsObjects = await ReservationService.query().where(
@@ -121,8 +109,10 @@ export default class ReservationsController {
 
   public async deleteReservation({ request }: HttpContextContract) {
     try {
+      const currentReservationId = request.param('reservationId')
       const reservationToBeDeleted = await Reservation.find(request.param('reservationId'))
       await reservationToBeDeleted?.delete()
+      await ReservationService.query().where('reservationId', currentReservationId).delete()
     } catch (err) {
       return err
     }

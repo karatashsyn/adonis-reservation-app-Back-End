@@ -1,6 +1,6 @@
 import type { HttpContextContract } from '@ioc:Adonis/Core/HttpContext'
-import { schema, rules } from '@ioc:Adonis/Core/Validator'
 import Employee from 'App/Models/Employee'
+import { validators } from 'App/utils/validationSchemas'
 
 export default class EmployeesController {
   public async getAllEmployees({ auth }: HttpContextContract) {
@@ -14,19 +14,15 @@ export default class EmployeesController {
   }
 
   public async createEmployee({ auth, request }: HttpContextContract) {
-    const newEmployeeSchema = schema.create({
-      fullName: schema.string({ trim: true }, [rules.minLength(2)]),
-      age: schema.number(),
-    })
-
     try {
-      const payload = await request.validate({ schema: newEmployeeSchema })
-      console.log(payload)
+      const payload = await request.validate({ schema: validators.newEmployeeSchema })
       const employee = new Employee()
-      employee.fullName = payload.fullName
-      employee.age = payload.age
-      employee.userId = auth.user!.id
-      await employee.save()
+      const result = Object.assign({}, employee, {
+        fullName: payload.fullName,
+        age: payload.age,
+        userId: auth.user!.id,
+      })
+      await result.save()
       return employee
     } catch (error) {
       console.log(error)
@@ -35,13 +31,8 @@ export default class EmployeesController {
   }
 
   public async updateEmployee({ request }: HttpContextContract) {
-    const newEmployeeSchema = schema.create({
-      fullName: schema.string({ trim: true }, [rules.requiredIfExists('fullName')]),
-      age: schema.number([rules.requiredIfExists('age')]),
-    })
     try {
-      const payload = await request.validate({ schema: newEmployeeSchema })
-
+      const payload = await request.validate({ schema: validators.newEmployeeSchema })
       const employeeId = request.param('employeeId')
       const employeeToBeUpdated = await Employee.findOrFail(employeeId)
       await employeeToBeUpdated.merge({ ...payload }).save()
